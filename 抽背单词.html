@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本地单词抽背工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei", sans-serif;
+        }
+        body {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        .section h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.danger {
+            background-color: #e74c3c;
+        }
+        button.danger:hover {
+            background-color: #c0392b;
+        }
+        .word-display {
+            text-align: center;
+            padding: 30px 0;
+        }
+        .word {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .meaning {
+            font-size: 20px;
+            color: #7f8c8d;
+            margin-top: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+        .word-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .word-item {
+            padding: 5px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+        .tip {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>本地单词抽背工具（数据本地保存）</h1>
+
+        <!-- 批量添加单词区域 -->
+        <div class="section">
+            <h3>批量添加单词（格式：单词&意思，一行一个）</h3>
+            <textarea id="wordInput" placeholder="例如：apple&苹果
+banana&香蕉
+book&书"></textarea>
+            <button onclick="addWords()">添加单词</button>
+            <p class="tip">分隔符固定为&，每行仅输入一组单词和意思</p>
+        </div>
+
+        <!-- 随机抽词展示区域 -->
+        <div class="section">
+            <h3>随机抽词（不重复抽取）</h3>
+            <div class="word-display">
+                <div class="word" id="currentWord">请点击抽取单词</div>
+                <div class="meaning hidden" id="currentMeaning"></div>
+            </div>
+            <button onclick="drawWord()">抽取新单词</button>
+            <button onclick="toggleMeaning()">显示/隐藏意思</button>
+            <button class="danger" onclick="resetDraw()">重置抽取（全部放回待抽）</button>
+        </div>
+
+        <!-- 单词查看区域 -->
+        <div class="section">
+            <h3>单词列表查看</h3>
+            <button onclick="showAllWords()">查看所有单词</button>
+            <button onclick="showPendingWords()">查看待抽取单词</button>
+            <button onclick="showDrawnWords()">查看已抽取单词</button>
+            <div class="word-list" id="wordListDisplay"></div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化本地存储数据结构
+        function initStorage() {
+            if (!localStorage.getItem('wordData')) {
+                const initialData = {
+                    allWords: [],       // 所有单词
+                    pendingWords: [],   // 待抽取单词
+                    drawnWords: []      // 已抽取单词
+                };
+                localStorage.setItem('wordData', JSON.stringify(initialData));
+            }
+        }
+
+        // 获取本地存储的单词数据
+        function getWordData() {
+            return JSON.parse(localStorage.getItem('wordData'));
+        }
+
+        // 保存数据到本地存储
+        function saveWordData(data) {
+            localStorage.setItem('wordData', JSON.stringify(data));
+        }
+
+        // 批量添加单词
+        function addWords() {
+            const input = document.getElementById('wordInput').value.trim();
+            if (!input) {
+                alert('请输入单词内容');
+                return;
+            }
+            const lines = input.split('\n');
+            const data = getWordData();
+            let addedCount = 0;
+
+            lines.forEach(line => {
+                const trimLine = line.trim();
+                if (!trimLine) return;
+                const [word, meaning] = trimLine.split('&');
+                if (word && meaning) {
+                    const wordObj = { word: word.trim(), meaning: meaning.trim() };
+                    // 避免重复添加相同单词
+                    const isExist = data.allWords.some(item => item.word === wordObj.word);
+                    if (!isExist) {
+                        data.allWords.push(wordObj);
+                        data.pendingWords.push(wordObj);
+                        addedCount++;
+                    }
+                }
+            });
+
+            saveWordData(data);
+            document.getElementById('wordInput').value = '';
+            alert(`成功添加${addedCount}个新单词`);
+        }
+
+        // 随机抽取不重复单词
+        function drawWord() {
+            const data = getWordData();
+            if (data.pendingWords.length === 0) {
+                alert('待抽取单词已为空，请重置抽取或添加新单词');
+                return;
+            }
+            // 随机抽取索引
+            const randomIndex = Math.floor(Math.random() * data.pendingWords.length);
+            const selectedWord = data.pendingWords.splice(randomIndex, 1)[0];
+            data.drawnWords.push(selectedWord);
+            saveWordData(data);
+
+            // 显示单词，隐藏意思
+            document.getElementById('currentWord').textContent = selectedWord.word;
+            document.getElementById('currentMeaning').textContent = selectedWord.meaning;
+            document.getElementById('currentMeaning').classList.add('hidden');
+        }
+
+        // 切换意思显示/隐藏
+        function toggleMeaning() {
+            const meaningEl = document.getElementById('currentMeaning');
+            meaningEl.classList.toggle('hidden');
+        }
+
+        // 重置抽取：已抽取单词全部放回待抽取
+        function resetDraw() {
+            if (!confirm('确定要重置抽取记录吗？所有已抽取单词将放回待抽取列表')) return;
+            const data = getWordData();
+            data.pendingWords = [...data.allWords];
+            data.drawnWords = [];
+            saveWordData(data);
+            document.getElementById('currentWord').textContent = '抽取已重置，请重新抽取';
+            document.getElementById('currentMeaning').classList.add('hidden');
+            alert('抽取记录已重置完成');
+        }
+
+        // 渲染单词列表到页面
+        function renderWordList(wordArray) {
+            const displayEl = document.getElementById('wordListDisplay');
+            if (wordArray.length === 0) {
+                displayEl.innerHTML = '<div class="word-item">暂无单词</div>';
+                return;
+            }
+            let html = '';
+            wordArray.forEach((item, index) => {
+                html += `<div class="word-item">${index + 1}. ${item.word} —— ${item.meaning}</div>`;
+            });
+            displayEl.innerHTML = html;
+        }
+
+        // 查看所有单词
+        function showAllWords() {
+            const data = getWordData();
+            renderWordList(data.allWords);
+        }
+
+        // 查看待抽取单词
+        function showPendingWords() {
+            const data = getWordData();
+            renderWordList(data.pendingWords);
+        }
+
+        // 查看已抽取单词
+        function showDrawnWords() {
+            const data = getWordData();
+            renderWordList(data.drawnWords);
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            initStorage();
+        }
+    </script>
+</body>
+</html>
