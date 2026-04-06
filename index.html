@@ -120,6 +120,8 @@
 banana&香蕉
 book&书"></textarea>
             <button onclick="addWords()">添加单词</button>
+            <!-- 新增清空所有单词按钮 -->
+            <button class="danger" onclick="clearAllWords()">清空所有单词</button>
             <p class="tip">分隔符固定为&，每行仅输入一组单词和意思</p>
         </div>
 
@@ -236,6 +238,27 @@ book&书"></textarea>
             document.getElementById('currentMeaning').classList.add('hidden');
             alert('抽取记录已重置完成');
         }
+
+        // ====================== 新增：清空所有单词功能 ======================
+        function clearAllWords() {
+            if (!confirm('⚠️ 警告：此操作将永久删除所有单词、待抽取、已抽取列表，无法恢复！确定继续吗？')) return;
+            
+            // 清空所有数据
+            const emptyData = {
+                allWords: [],
+                pendingWords: [],
+                drawnWords: []
+            };
+            saveWordData(emptyData);
+
+            // 重置页面显示
+            document.getElementById('currentWord').textContent = '请点击抽取单词';
+            document.getElementById('currentMeaning').classList.add('hidden');
+            document.getElementById('wordListDisplay').innerHTML = '<div class="word-item">暂无单词</div>';
+            
+            alert('✅ 已成功清空所有单词数据！');
+        }
+        // ===================================================================
 
         // 渲染单词列表到页面
         function renderWordList(wordArray) {
