@@ -115,14 +115,14 @@
 
         <!-- 批量添加单词区域 -->
         <div class="section">
-            <h3>批量添加单词（格式：单词&意思，一行一个）</h3>
-            <textarea id="wordInput" placeholder="例如：apple&苹果
-banana&香蕉
-book&书"></textarea>
+            <h3>批量添加单词（格式：单词#意思，一行一个）</h3>
+            <textarea id="wordInput" placeholder="例如：apple#苹果
+banana#香蕉
+book#书"></textarea>
             <button onclick="addWords()">添加单词</button>
             <!-- 新增清空所有单词按钮 -->
             <button class="danger" onclick="clearAllWords()">清空所有单词</button>
-            <p class="tip">分隔符固定为&，每行仅输入一组单词和意思</p>
+            <p class="tip">分隔符固定为#，每行仅输入一组单词和意思</p>
         </div>
 
         <!-- 随机抽词展示区域 -->
@@ -184,7 +184,7 @@ book&书"></textarea>
             lines.forEach(line => {
                 const trimLine = line.trim();
                 if (!trimLine) return;
-                const [word, meaning] = trimLine.split('&');
+                const [word, meaning] = trimLine.split('#');
                 if (word && meaning) {
                     const wordObj = { word: word.trim(), meaning: meaning.trim() };
                     // 避免重复添加相同单词
